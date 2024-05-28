@@ -1,11 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+/*
+forward:
+A=M×N  3×4
+C=A×B   3×3
+C1=Relu(C) 3×3
+O=M×C1 3×3
+O1=O×B1 3×2
+LOSS=CrossEntropy(O1)
+*/
 
 // 矩阵尺寸定义
-#define A_ROWS 2
-#define A_COLS 3
-#define B_COLS 2
+#define M_ROWS 3
+#define M_COLS 3
+#define N_ROWS M_COLS
+#define N_COLS 4
+
+#define A_ROWS 3
+#define A_COLS 4
+#define B_ROWS A_COLS
+#define B_COLS 3
+
+#define B1_ROWS B_COLS
+#define B1_COLS 2
 
 // 矩阵乘法函数
 /**
@@ -147,18 +165,42 @@ void compute_gradient(double *A, double *C_grad, double *B_grad, double *Relu_gr
 }
 
 int main() {
-    // 定义矩阵
-    double A[A_ROWS][A_COLS] = {{-1, 2, -3},
-                                {2, -3, 4},
+    // 定义矩阵m、n、b、b1
+    double M[M_ROWS][M_COLS] = {{1, 0, 0},
+                                {1, 0, 0},
+                                {0, 1, 0},
                                };
-    double B[A_COLS][B_COLS] = {{1, 2},
-                                {2,3},
-                                {3,4},
-                                };
+    double N[N_ROWS][N_COLS] = {{1, 0, 1, 0},
+                                {1, 2, 0, 1},
+                                {1, 0, 1, 1},
+                               };
+
+    double B[B_ROWS][B_COLS] = {{1, 1, 0.5},
+                            {1, 1, 1},
+                            {1, 1, 0.2},
+                            {1, 1, 1},
+                           };
+    
+    double B1[B1_ROWS][B1_COLS] = {{1, 0.2},
+                                   {1, 1},
+                                   {0.5, 1},
+                                  };
+
+    double A[A_ROWS][A_COLS];
     double C[A_ROWS][B_COLS];
-    int labels[A_ROWS] = {0, 1};
+    double O[M_ROWS][B_COLS];
+    double O1[M_ROWS][B1_COLS];
+    int labels[M_ROWS] = {0, 1, 0};
 
     // 前向传播
+    matrix_multiply((double *)M, (double *)N, (double *)A, M_ROWS, M_COLS, N_COLS);
+    for (int i = 0; i < M_ROWS; i++) {
+        for (int j = 0; j < N_COLS; j++) {
+            printf("%f ", A[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
     matrix_multiply((double *)A, (double *)B, (double *)C, A_ROWS, A_COLS, B_COLS);
     for (int i = 0; i < A_ROWS; i++) {
         for (int j = 0; j < B_COLS; j++) {
@@ -166,7 +208,38 @@ int main() {
         }
         printf("\n");
     }
-    
+    printf("******************************\n");
+    double grad_Relu[A_ROWS][B_COLS];
+    relu_derivative((double *)C, (double *)grad_Relu, A_ROWS, B_COLS);
+    relu((double *)C, A_ROWS, B_COLS);
+    matrix_multiply((double *)M, (double *)C, (double *)O, M_ROWS, B_COLS, B_COLS);
+    for (int i = 0; i < M_ROWS; i++) {
+        for (int j = 0; j < B_COLS; j++) {
+            printf("%f ", O[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
+    matrix_multiply((double *)O, (double *)B1, (double *)O1, M_ROWS, B_COLS, B1_COLS);
+    for (int i = 0; i < M_ROWS; i++) {
+        for (int j = 0; j < B1_COLS; j++) {
+            printf("%f ", O1[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
+
+    // 计算损失和梯度
+    softmax((double *)O1, M_ROWS, B1_COLS);
+    double grad[A_ROWS][B1_COLS];
+    double loss = cross_entropy_loss((double *)O1, labels, (double *)grad, M_ROWS, B1_COLS);
+    printf("Loss: %f\n", loss);
+
+
+
+
+
+/*
     double grad_Relu[A_ROWS][B_COLS];
     relu_derivative((double *)C, (double *)grad_Relu, A_ROWS, B_COLS);
     relu((double *)C, A_ROWS, B_COLS);
@@ -176,14 +249,6 @@ int main() {
     double grad[A_ROWS][B_COLS];
     double loss = cross_entropy_loss((double *)C, labels, (double *)grad, A_ROWS, B_COLS);
     printf("Loss: %f\n", loss);
-    /*
-    for (int i = 0; i < A_ROWS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", grad[i][j]);
-        }
-        printf("\n");
-    }
-    */
     printf("Gradient of Relu:\n");
     for (int i = 0; i < A_ROWS; i++) {
         for (int j = 0; j < B_COLS; j++) {
@@ -204,6 +269,7 @@ int main() {
         }
         printf("\n");
     }
+*/
 
     return 0;
 }
