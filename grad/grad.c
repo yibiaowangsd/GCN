@@ -63,6 +63,7 @@ void relu_derivative(double *matrix, double *grad, int rows, int cols) {
     }
 }
 
+
 // Softmax函数
 /**
  * Applies the softmax function to a matrix.
