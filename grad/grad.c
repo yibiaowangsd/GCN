@@ -153,12 +153,23 @@ double cross_entropy_loss(double *predictions, int *labels, double *grad, int ro
  * @param A_cols    Number of columns in matrix A
  * @param B_cols    Number of columns in matrix B
  */
-void compute_gradient(double *A, double *C_grad, double *B_grad, double *Relu_grad,int A_rows, int A_cols, int B_cols) {
+void compute_gradient_relu(double *A, double *C_grad, double *B_grad, double *Relu_grad,int A_rows, int A_cols, int B_cols) {
     for (int i = 0; i < A_cols; i++) {
         for (int j = 0; j < B_cols; j++) {
             B_grad[i * B_cols + j] = 0;
             for (int k = 0; k < A_rows; k++) {
                 B_grad[i * B_cols + j] += A[k * A_cols + i] * C_grad[k * B_cols + j]*Relu_grad[k * B_cols + j];
+            }
+        }
+    }
+}
+
+void compute_gradient(double *A, double *C_grad, double *B_grad,int A_rows, int A_cols, int B_cols) {
+    for (int i = 0; i < A_cols; i++) {
+        for (int j = 0; j < B_cols; j++) {
+            B_grad[i * B_cols + j] = 0;
+            for (int k = 0; k < A_rows; k++) {
+                B_grad[i * B_cols + j] += A[k * A_cols + i] * C_grad[k * B_cols + j];
             }
         }
     }
@@ -209,6 +220,7 @@ int main() {
         printf("\n");
     }
     printf("******************************\n");
+    //ReLU激活函数以及激活函数的梯度
     double grad_Relu[A_ROWS][B_COLS];
     relu_derivative((double *)C, (double *)grad_Relu, A_ROWS, B_COLS);
     relu((double *)C, A_ROWS, B_COLS);
@@ -234,9 +246,45 @@ int main() {
     double grad[A_ROWS][B1_COLS];
     double loss = cross_entropy_loss((double *)O1, labels, (double *)grad, M_ROWS, B1_COLS);
     printf("Loss: %f\n", loss);
-
-
-
+    double B1_grad[B_COLS][B1_COLS];
+    compute_gradient((double *)O, (double *)grad, (double *)B1_grad, M_ROWS, B_COLS, B1_COLS);
+    printf("Gradient of B1:\n");
+    for (int i = 0; i < B_COLS; i++) {
+        for (int j = 0; j < B1_COLS; j++) {
+            printf("%f ", B1_grad[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
+    double O_grad[M_ROWS][B_COLS];
+    compute_gradient((double *)B1, (double *)grad, (double *)O_grad, M_ROWS,B_COLS,B_COLS);
+    printf("Gradient of O:\n");
+    for (int i = 0; i < M_ROWS; i++) {
+        for (int j = 0; j < B_COLS; j++) {
+            printf("%f ", O_grad[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
+    double C1_grad[A_ROWS][B_COLS];
+    compute_gradient((double *)M, (double *) O_grad, (double *)C1_grad, M_ROWS, M_COLS, B_COLS);
+    printf("Gradient of C1:\n");
+    for (int i = 0; i < A_ROWS; i++) {
+        for (int j = 0; j < B_COLS; j++) {
+            printf("%f ", C1_grad[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
+    double B_grad[A_COLS][B_COLS];
+    compute_gradient((double *)A, (double *)C1_grad, (double *)B_grad, A_ROWS, A_COLS, B_COLS);
+    printf("Gradient of B:\n");
+    for (int i = 0; i < A_COLS; i++) {
+        for (int j = 0; j < B_COLS; j++) {
+            printf("%f ", B_grad[i][j]);
+        }
+        printf("\n");
+    }
 
 
 /*
