@@ -25,6 +25,11 @@ LOSS=CrossEntropy(O1)
 #define B1_ROWS B_COLS
 #define B1_COLS 2
 
+//优化器参数定义
+#define Beta1 0.9
+#define Beta2 0.999
+#define Alpha 0.01
+
 // 矩阵乘法函数
 /**
  * Multiplies two matrices and stores the result in a third matrix.
@@ -187,6 +192,21 @@ void compute_gradient_left(double *B, double *C_grad, double *A_grad,int A_rows,
     }
 }
 
+//adam优化器
+void adam_optimizer(double *params, double *grad, double *m, double *v, int row,int col, int t, double beta1, double beta2, double alpha) {
+    double beta1_t = pow(beta1, t);
+    double beta2_t = pow(beta2, t);
+    for (int i = 0; i < row; i++) {
+        for(int j = 0; j < col; j++){
+        m[i*col+j] = beta1 * m[i*col+j] + (1 - beta1) * grad[i*col+j];
+        v[i*col+j] = beta2 * v[i*col+j] + (1 - beta2) * grad[i*col+j] * grad[i*col+j];
+        double m_hat = m[i*col+j] / (1 - beta1_t);
+        double v_hat = v[i*col+j] / (1 - beta2_t);
+        params[i*col+j] -= alpha * m_hat / (sqrt(v_hat) + 1e-8);
+        }
+    }
+}
+
 int main() {
     // 定义矩阵m、n、b、b1
     double M[M_ROWS][M_COLS] = {{1, 0, 0},
@@ -197,6 +217,7 @@ int main() {
                                 {1, 2, 0, 1},
                                 {1, 0, 1, 1},
                                };
+    int labels[M_ROWS] = {0, 1, 0};
 
     double B[B_ROWS][B_COLS] = {{1, 1, 0.5},
                             {1, 1, 1},
@@ -210,48 +231,21 @@ int main() {
                                   };
 
     double A[A_ROWS][A_COLS];
+    matrix_multiply((double *)M, (double *)N, (double *)A, M_ROWS, M_COLS, N_COLS);
+    
     double C[A_ROWS][B_COLS];
     double O[M_ROWS][B_COLS];
     double O1[M_ROWS][B1_COLS];
-    int labels[M_ROWS] = {0, 1, 0};
-
+    int step=1;
+while(step<200){
     // 前向传播
-    matrix_multiply((double *)M, (double *)N, (double *)A, M_ROWS, M_COLS, N_COLS);
-    for (int i = 0; i < M_ROWS; i++) {
-        for (int j = 0; j < N_COLS; j++) {
-            printf("%f ", A[i][j]);
-        }
-        printf("\n");
-    }
-    printf("******************************\n");
     matrix_multiply((double *)A, (double *)B, (double *)C, A_ROWS, A_COLS, B_COLS);
-    for (int i = 0; i < A_ROWS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", C[i][j]);
-        }
-        printf("\n");
-    }
-    printf("******************************\n");
     //ReLU激活函数以及激活函数的梯度
     double grad_Relu[A_ROWS][B_COLS];
     relu_derivative((double *)C, (double *)grad_Relu, A_ROWS, B_COLS);
     relu((double *)C, A_ROWS, B_COLS);
     matrix_multiply((double *)M, (double *)C, (double *)O, M_ROWS, B_COLS, B_COLS);
-    for (int i = 0; i < M_ROWS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", O[i][j]);
-        }
-        printf("\n");
-    }
-    printf("******************************\n");
     matrix_multiply((double *)O, (double *)B1, (double *)O1, M_ROWS, B_COLS, B1_COLS);
-    for (int i = 0; i < M_ROWS; i++) {
-        for (int j = 0; j < B1_COLS; j++) {
-            printf("%f ", O1[i][j]);
-        }
-        printf("\n");
-    }
-    printf("******************************\n");
 
     // 计算损失和梯度
     softmax((double *)O1, M_ROWS, B1_COLS);
@@ -260,6 +254,7 @@ int main() {
     printf("Loss: %f\n", loss);
     double B1_grad[B_COLS][B1_COLS];
     compute_gradient((double *)O, (double *)grad, (double *)B1_grad, M_ROWS, B_COLS, B1_COLS);
+    /*
     printf("Gradient of B1:\n");
     for (int i = 0; i < B_COLS; i++) {
         for (int j = 0; j < B1_COLS; j++) {
@@ -268,67 +263,33 @@ int main() {
         printf("\n");
     }
     printf("******************************\n");
+    */
     double O_grad[M_ROWS][B_COLS];
     compute_gradient_left((double *)B1, (double *)grad, (double *)O_grad, M_ROWS, B_COLS, B1_COLS);
-    printf("Gradient of O:\n");
-    for (int i = 0; i < M_ROWS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", O_grad[i][j]);
-        }
-        printf("\n");
-    }
-    printf("******************************\n");
     double C_grad[A_ROWS][B_COLS];
     compute_gradient((double *)M, (double *)O_grad, (double *)C_grad, M_ROWS, M_COLS, B_COLS);
-    printf("Gradient of C:\n");
-    for (int i = 0; i < A_ROWS; i++) {
+    double B_grad[A_COLS][B_COLS];
+    compute_gradient((double *)A, (double *)C_grad, (double *)B_grad, A_ROWS, A_COLS, B_COLS);
+    /*
+    printf("Gradient of B:\n");
+    for (int i = 0; i < A_COLS; i++) {
         for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", C_grad[i][j]);
+            printf("%f ", B_grad[i][j]);
         }
         printf("\n");
     }
     printf("******************************\n");
-    double B_grad[A_COLS][B_COLS];
-    compute_gradient((double *)A, (double *)C_grad, (double *)B_grad, A_ROWS, A_COLS, B_COLS);
-    printf("Gradient of B:\n");
-    for (int i = 0; i < A_COLS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", B_grad[i][j]);
-        }
-        printf("\n");
-    }
+    */
+    //初始化m、v
+    double m_B[A_COLS][B_COLS]={0};
+    double v_B[A_COLS][B_COLS]={0};
+    double m_B1[B_COLS][B1_COLS]={0};
+    double v_B1[B_COLS][B1_COLS]={0};
+    adam_optimizer((double *)B, (double *)B_grad, (double *)m_B, (double *)v_B, A_COLS, B_COLS, step, Beta1, Beta2, Alpha);   
+    adam_optimizer((double *)B1, (double *)B1_grad, (double *)m_B1, (double *)v_B1, B_COLS, B1_COLS, step, Beta1, Beta2, Alpha);
+    step+=1;
 
-/*
-    double grad_Relu[A_ROWS][B_COLS];
-    relu_derivative((double *)C, (double *)grad_Relu, A_ROWS, B_COLS);
-    relu((double *)C, A_ROWS, B_COLS);
-    softmax((double *)C, A_ROWS, B_COLS);
-
-    // 计算损失和梯度
-    double grad[A_ROWS][B_COLS];
-    double loss = cross_entropy_loss((double *)C, labels, (double *)grad, A_ROWS, B_COLS);
-    printf("Loss: %f\n", loss);
-    printf("Gradient of Relu:\n");
-    for (int i = 0; i < A_ROWS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", grad_Relu[i][j]);
-        }
-        printf("\n");
-    }
-
-    // 反向传播
-    double B_grad[A_COLS][B_COLS];
-    compute_gradient((double *)A, (double *)grad, (double *)B_grad,(double *)grad_Relu, A_ROWS, A_COLS, B_COLS);
-
-    // 打印梯度
-    printf("Gradient of B:\n");
-    for (int i = 0; i < A_COLS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", B_grad[i][j]);
-        }
-        printf("\n");
-    }
-*/
+}
 
     return 0;
 }
