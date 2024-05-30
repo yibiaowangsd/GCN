@@ -175,6 +175,18 @@ void compute_gradient(double *A, double *C_grad, double *B_grad,int A_rows, int 
     }
 }
 
+
+void compute_gradient_left(double *B, double *C_grad, double *A_grad,int A_rows, int A_cols, int B_cols) {
+    for (int i = 0; i < A_cols; i++) {
+        for (int j = 0; j < A_rows; j++) {
+            A_grad[j * A_cols + i] = 0;
+            for (int k = 0; k < B_cols; k++) {
+                A_grad[j * A_cols + i] += B[i* B_cols + k]* C_grad[j * B_cols + k];
+            }
+        }
+    }
+}
+
 int main() {
     // 定义矩阵m、n、b、b1
     double M[M_ROWS][M_COLS] = {{1, 0, 0},
@@ -257,7 +269,7 @@ int main() {
     }
     printf("******************************\n");
     double O_grad[M_ROWS][B_COLS];
-    compute_gradient((double *)B1, (double *)grad, (double *)O_grad, M_ROWS,B_COLS,B_COLS);
+    compute_gradient_left((double *)B1, (double *)grad, (double *)O_grad, M_ROWS, B_COLS, B1_COLS);
     printf("Gradient of O:\n");
     for (int i = 0; i < M_ROWS; i++) {
         for (int j = 0; j < B_COLS; j++) {
@@ -266,18 +278,18 @@ int main() {
         printf("\n");
     }
     printf("******************************\n");
-    double C1_grad[A_ROWS][B_COLS];
-    compute_gradient((double *)M, (double *) O_grad, (double *)C1_grad, M_ROWS, M_COLS, B_COLS);
-    printf("Gradient of C1:\n");
+    double C_grad[A_ROWS][B_COLS];
+    compute_gradient((double *)M, (double *)O_grad, (double *)C_grad, M_ROWS, M_COLS, B_COLS);
+    printf("Gradient of C:\n");
     for (int i = 0; i < A_ROWS; i++) {
         for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", C1_grad[i][j]);
+            printf("%f ", C_grad[i][j]);
         }
         printf("\n");
     }
     printf("******************************\n");
     double B_grad[A_COLS][B_COLS];
-    compute_gradient((double *)A, (double *)C1_grad, (double *)B_grad, A_ROWS, A_COLS, B_COLS);
+    compute_gradient((double *)A, (double *)C_grad, (double *)B_grad, A_ROWS, A_COLS, B_COLS);
     printf("Gradient of B:\n");
     for (int i = 0; i < A_COLS; i++) {
         for (int j = 0; j < B_COLS; j++) {
@@ -285,7 +297,6 @@ int main() {
         }
         printf("\n");
     }
-
 
 /*
     double grad_Relu[A_ROWS][B_COLS];
