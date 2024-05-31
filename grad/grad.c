@@ -207,6 +207,15 @@ void adam_optimizer(double *params, double *grad, double *m, double *v, int row,
     }
 }
 
+
+void reset_weight(double *matrix, int rows, int cols) {
+    
+    float std = 1.0 / sqrt(cols);
+    for (int i = 0; i < rows * cols; i++) {
+        matrix[i] = (rand() / (double)RAND_MAX) * 2 * std - std;
+    }
+}
+
 int main() {
     // 定义矩阵m、n、b、b1
     double M[M_ROWS][M_COLS] = {{1, 0, 0},
@@ -217,18 +226,27 @@ int main() {
                                 {1, 2, 0, 1},
                                 {1, 0, 1, 1},
                                };
-    int labels[M_ROWS] = {0, 1, 0};
+    int labels[M_ROWS] = {1, 1, 1};
 
-    double B[B_ROWS][B_COLS] = {{1, 1, 0.5},
-                            {1, 1, 1},
-                            {1, 1, 0.2},
-                            {1, 1, 1},
-                           };
+    double B[B_ROWS][B_COLS];
     
-    double B1[B1_ROWS][B1_COLS] = {{1, 0.2},
-                                   {1, 1},
-                                   {0.5, 1},
-                                  };
+    double B1[B1_ROWS][B1_COLS];
+    reset_weight((double *)B, B_ROWS, B_COLS);
+    for(int i=0;i<B_ROWS;i++){
+        for(int j=0;j<B_COLS;j++){
+            printf("%f  ",B[i][j]);
+        }
+        printf("\n");
+
+    }
+    reset_weight((double *)B1, B1_ROWS, B1_COLS);
+    for(int i=0;i<B1_ROWS;i++){
+        for(int j=0;j<B1_COLS;j++){
+            printf("%f  ",B1[i][j]);
+        }
+        printf("\n");
+
+    }
 
     double A[A_ROWS][A_COLS];
     matrix_multiply((double *)M, (double *)N, (double *)A, M_ROWS, M_COLS, N_COLS);
@@ -237,7 +255,7 @@ int main() {
     double O[M_ROWS][B_COLS];
     double O1[M_ROWS][B1_COLS];
     int step=1;
-while(step<200){
+while(step<5){
     // 前向传播
     matrix_multiply((double *)A, (double *)B, (double *)C, A_ROWS, A_COLS, B_COLS);
     //ReLU激活函数以及激活函数的梯度
@@ -251,7 +269,7 @@ while(step<200){
     softmax((double *)O1, M_ROWS, B1_COLS);
     double grad[A_ROWS][B1_COLS];
     double loss = cross_entropy_loss((double *)O1, labels, (double *)grad, M_ROWS, B1_COLS);
-    printf("Loss: %f\n", loss);
+    printf("step:%d   Loss: %f\n", step,loss);
     double B1_grad[B_COLS][B1_COLS];
     compute_gradient((double *)O, (double *)grad, (double *)B1_grad, M_ROWS, B_COLS, B1_COLS);
     /*
