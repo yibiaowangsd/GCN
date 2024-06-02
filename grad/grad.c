@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdbool.h>
 /*
 forward:
 A=M×N  3×4
@@ -24,6 +25,9 @@ LOSS=CrossEntropy(O1)
 
 #define B1_ROWS B_COLS
 #define B1_COLS 4
+
+#define train_size 4
+#define test_size 28
 
 //优化器参数定义
 #define Beta1 0.9
@@ -173,6 +177,47 @@ float cross_entropy_loss(float *predictions, int *labels, float *grad, int rows,
     return loss / rows;
 }
 
+
+float cross_entropy_loss_train(float *predictions, int *labels, float *grad,int *train,int tra,int p,int rows, int cols) {
+    float loss = 0.0;
+
+    // Compute the gradient and loss for each sample
+    for (int i = 0; i < rows; i++) {
+        if(train[i]==p){
+        for (int j = 0; j < cols; j++) {
+            grad[i * cols + j] = predictions[i * cols + j];
+        }
+
+        grad[i * cols + labels[i]] -= 1;
+        loss -= log(predictions[i * cols + labels[i]]);
+        }
+    }
+
+    // Normalize the gradient by dividing it by the number of samples
+    for(int i = 0; i < rows; i++) {
+        for(int j = 0; j < cols; j++) {
+            grad[i * cols + j] /= tra;
+        }
+    }
+
+    // Calculate the average loss
+    return loss / tra;
+}
+
+float cross_entropy_loss_test(float *predictions, int *labels,int *train,int tra,int p,int rows, int cols) {
+    float loss = 0.0;
+
+    // Compute the gradient and loss for each sample
+    for (int i = 0; i < rows; i++) {
+        if(train[i]==p){
+        loss -= log(predictions[i * cols + labels[i]]);
+        }
+    }
+
+    // Calculate the average loss
+    return loss / tra;
+}
+
 // 计算矩阵B的梯度
 /**
  * Computes the gradient of matrix B with respect to matrix A and matrix C.
@@ -259,6 +304,29 @@ float compute_accuracy(float *predictions, int *labels, int rows, int cols) {
         }
     }
     acc=(float)correct / rows;
+
+    return acc;
+}
+
+float compute_accuracy_train(float *predictions, int *labels, int *train,int tra,int p,int rows, int cols) {
+    int correct = 0;
+    float acc=0;
+    for (int i = 0; i < rows; i++) {
+        if(train[i]==p){
+        int max_index = 0;
+        float max_value = predictions[i * cols];
+        for (int j = 1; j < cols; j++) {
+            if (predictions[i * cols + j] > max_value) {
+                max_value = predictions[i * cols + j];
+                max_index = j;
+            }
+        }
+        if (max_index == labels[i]) {
+            correct++;
+        }
+        }
+    }
+    acc=(float)correct / tra;
 
     return acc;
 }
@@ -393,7 +461,8 @@ int main() {
     
     
     //reset_weight((float *)B1, B1_ROWS, B1_COLS);
-    
+    int idx_train[M_ROWS]={1,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0};
+    //int idx_test[test_size]={1,2,3,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,26,27,28,29,30,31,32,33};
     
 
     float A[A_ROWS][A_COLS];
@@ -409,7 +478,7 @@ int main() {
     float C_grad[A_ROWS][B_COLS];
     float B_grad[A_COLS][B_COLS];
     int step=1;
-while(step<50){
+while(step<200){
     // 前向传播
     matrix_multiply((float *)A, (float *)B, (float *)C, A_ROWS, A_COLS, B_COLS);
     //ReLU激活函数以及激活函数的梯度
@@ -420,19 +489,52 @@ while(step<50){
 
     // 计算损失和梯度
     softmax((float *)O1, M_ROWS, B1_COLS);
-    float loss = cross_entropy_loss((float *)O1, labels, (float *)grad, M_ROWS, B1_COLS);
+    for(int i=0;i<A_ROWS;i++){
+        for(int j=0;j<B1_COLS;j++){
+            grad[i][j]=0;
+        }
+    }
+    //float loss = cross_entropy_loss((float *)O1, labels, (float *)grad, M_ROWS, B1_COLS);
+    float loss = cross_entropy_loss_train((float *)O1, labels, (float *)grad,idx_train,4,1, M_ROWS, B1_COLS);
     printf("step:%d   Loss: %f  ", step,loss);
     //输出正确率
     float accuracy=0;
-    accuracy=compute_accuracy((float *)O1, labels, M_ROWS, B1_COLS);
-    printf("accuracy: %f\n",accuracy);
+    //accuracy=compute_accuracy((float *)O1, labels, M_ROWS, B1_COLS);
+    accuracy=compute_accuracy_train((float *)O1, labels, idx_train,4,1,M_ROWS, B1_COLS);
+    printf("accuracy: %f    ",accuracy);
+
+    float loss_test = cross_entropy_loss_test((float *)O1, labels,idx_train,28,0, M_ROWS, B1_COLS);
+    printf("test:  Loss: %f  ",loss_test);
+    float accuracy_test=0;
+    accuracy_test=compute_accuracy_train((float *)O1, labels, idx_train,28,0,M_ROWS, B1_COLS);
+    printf("accuracy_test: %f\n",accuracy_test);
+
+
 
     compute_gradient((float *)O, (float *)grad, (float *)B1_grad, M_ROWS, B_COLS, B1_COLS);
-    
+    /*
+    printf("Gradient of B1:\n");
+    for (int i = 0; i < B_COLS; i++) {
+        for (int j = 0; j < B1_COLS; j++) {
+            printf("%0.4f ", B1_grad[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
+    */
     compute_gradient_left((float *)B1, (float *)grad, (float *)O_grad, M_ROWS, B_COLS, B1_COLS);
     compute_gradient((float *)M, (float *)O_grad, (float *)C_grad, M_ROWS, M_COLS, B_COLS);
     compute_gradient_relu((float *)A, (float *)C_grad, (float *)B_grad, (float*) grad_Relu,A_ROWS, A_COLS, B_COLS);
-    
+    /*
+    printf("Gradient of B:\n");
+    for (int i = 0; i < A_COLS; i++) {
+        for (int j = 0; j < B_COLS; j++) {
+            printf("%0.4f ", B_grad[i][j]);
+        }
+        printf("\n");
+    }
+    printf("******************************\n");
+    */
     //初始化m、v
     float m_B[A_COLS][B_COLS]={0};
     float v_B[A_COLS][B_COLS]={0};
