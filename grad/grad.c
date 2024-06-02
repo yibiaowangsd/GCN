@@ -41,7 +41,33 @@ LOSS=CrossEntropy(O1)
  * @param A_cols  Number of columns in matrix A
  * @param B_cols  Number of columns in matrix B
  */
-void matrix_multiply(double *A, double *B, double *C, int A_rows, int A_cols, int B_cols) {
+void matrix_multiply(float *A, float *B, float *C, int A_rows, int A_cols, int B_cols) {
+    for (int i = 0; i < A_rows; i++) {
+        for (int j = 0; j < B_cols; j++) {
+            C[i * B_cols + j] = 0;
+            for (int k = 0; k < A_cols; k++) {
+                C[i * B_cols + j] += A[i * A_cols + k] * B[k * B_cols + j];
+            }
+        }
+    }
+}
+
+void matrix_multiply_1(float *A, float *B, float *C, int A_rows, int A_cols, int B_cols) {
+    printf("A:\n");
+    for (int i = 0; i < A_rows; i++) {
+        for (int j = 0; j < A_cols; j++) {
+            printf("%0.4f ", A[i * A_cols + j]);
+        }
+        printf("\n");
+    }
+    printf("B:\n");
+    for (int i = 0; i < A_cols; i++) {
+        for (int j = 0; j < B_cols; j++) {
+            printf("%0f ", B[i * B_cols + j]);
+        }
+        printf("\n");
+    }
+
     for (int i = 0; i < A_rows; i++) {
         for (int j = 0; j < B_cols; j++) {
             C[i * B_cols + j] = 0;
@@ -60,7 +86,7 @@ void matrix_multiply(double *A, double *B, double *C, int A_rows, int A_cols, in
  * @param rows The number of rows in the matrix.
  * @param cols The number of columns in the matrix.
  */
-void relu(double *matrix, int rows, int cols) {
+void relu(float *matrix, int rows, int cols) {
     for (int i = 0; i < rows * cols; i++) {
         if (matrix[i] < 0) {
             matrix[i] = 0;
@@ -76,7 +102,7 @@ void relu(double *matrix, int rows, int cols) {
  * @param rows The number of rows in the matrix.
  * @param cols The number of columns in the matrix.
  */
-void relu_derivative(double *matrix, double *grad, int rows, int cols) {
+void relu_derivative(float *matrix, float *grad, int rows, int cols) {
     for (int i = 0; i < rows * cols; i++) {
         if (matrix[i] > 0) {
             grad[i] = 1;
@@ -100,9 +126,9 @@ void relu_derivative(double *matrix, double *grad, int rows, int cols) {
  * @param rows The number of rows in the matrix.
  * @param cols The number of columns in the matrix.
  */
-void softmax(double *matrix, int rows, int cols) {
+void softmax(float *matrix, int rows, int cols) {
     for (int i = 0; i < rows; i++) {
-        double sum = 0.0;
+        float sum = 0.0;
         for (int j = 0; j < cols; j++) {
             matrix[i * cols + j] = exp(matrix[i * cols + j]);
             sum += matrix[i * cols + j];
@@ -124,8 +150,8 @@ void softmax(double *matrix, int rows, int cols) {
  * @param cols The number of classes.
  * @return The average cross-entropy loss.
  */
-double cross_entropy_loss(double *predictions, int *labels, double *grad, int rows, int cols) {
-    double loss = 0.0;
+float cross_entropy_loss(float *predictions, int *labels, float *grad, int rows, int cols) {
+    float loss = 0.0;
 
     // Compute the gradient and loss for each sample
     for (int i = 0; i < rows; i++) {
@@ -158,7 +184,7 @@ double cross_entropy_loss(double *predictions, int *labels, double *grad, int ro
  * @param A_cols    Number of columns in matrix A
  * @param B_cols    Number of columns in matrix B
  */
-void compute_gradient_relu(double *A, double *C_grad, double *B_grad, double *Relu_grad,int A_rows, int A_cols, int B_cols) {
+void compute_gradient_relu(float *A, float *C_grad, float *B_grad, float *Relu_grad,int A_rows, int A_cols, int B_cols) {
     for (int i = 0; i < A_cols; i++) {
         for (int j = 0; j < B_cols; j++) {
             B_grad[i * B_cols + j] = 0;
@@ -169,7 +195,7 @@ void compute_gradient_relu(double *A, double *C_grad, double *B_grad, double *Re
     }
 }
 
-void compute_gradient(double *A, double *C_grad, double *B_grad,int A_rows, int A_cols, int B_cols) {
+void compute_gradient(float *A, float *C_grad, float *B_grad,int A_rows, int A_cols, int B_cols) {
     for (int i = 0; i < A_cols; i++) {
         for (int j = 0; j < B_cols; j++) {
             B_grad[i * B_cols + j] = 0;
@@ -181,7 +207,7 @@ void compute_gradient(double *A, double *C_grad, double *B_grad,int A_rows, int 
 }
 
 
-void compute_gradient_left(double *B, double *C_grad, double *A_grad,int A_rows, int A_cols, int B_cols) {
+void compute_gradient_left(float *B, float *C_grad, float *A_grad,int A_rows, int A_cols, int B_cols) {
     for (int i = 0; i < A_cols; i++) {
         for (int j = 0; j < A_rows; j++) {
             A_grad[j * A_cols + i] = 0;
@@ -193,35 +219,35 @@ void compute_gradient_left(double *B, double *C_grad, double *A_grad,int A_rows,
 }
 
 //adam优化器
-void adam_optimizer(double *params, double *grad, double *m, double *v, int row,int col, int t, double beta1, double beta2, double alpha) {
-    double beta1_t = pow(beta1, t);
-    double beta2_t = pow(beta2, t);
+void adam_optimizer(float *params, float *grad, float *m, float *v, int row,int col, int t, float beta1, float beta2, float alpha) {
+    float beta1_t = pow(beta1, t);
+    float beta2_t = pow(beta2, t);
     for (int i = 0; i < row; i++) {
         for(int j = 0; j < col; j++){
         m[i*col+j] = beta1 * m[i*col+j] + (1 - beta1) * grad[i*col+j];
         v[i*col+j] = beta2 * v[i*col+j] + (1 - beta2) * grad[i*col+j] * grad[i*col+j];
-        double m_hat = m[i*col+j] / (1 - beta1_t);
-        double v_hat = v[i*col+j] / (1 - beta2_t);
+        float m_hat = m[i*col+j] / (1 - beta1_t);
+        float v_hat = v[i*col+j] / (1 - beta2_t);
         params[i*col+j] -= alpha * m_hat / (sqrt(v_hat) + 1e-8);
         }
     }
 }
 
 // 初始化权重
-void reset_weight(double *matrix, int rows, int cols) {
+void reset_weight(float *matrix, int rows, int cols) {
     
     float std = 1.0 / sqrt(cols);
     for (int i = 0; i < rows * cols; i++) {
-        matrix[i] = (rand() / (double)RAND_MAX) * 2 * std - std;
+        matrix[i] = (rand() / (float)RAND_MAX) * 2 * std - std;
     }
 }
 //计算正确率
-double compute_accuracy(double *predictions, int *labels, int rows, int cols) {
+float compute_accuracy(float *predictions, int *labels, int rows, int cols) {
     int correct = 0;
-    double acc=0;
+    float acc=0;
     for (int i = 0; i < rows; i++) {
         int max_index = 0;
-        double max_value = predictions[i * cols];
+        float max_value = predictions[i * cols];
         for (int j = 1; j < cols; j++) {
             if (predictions[i * cols + j] > max_value) {
                 max_value = predictions[i * cols + j];
@@ -232,7 +258,7 @@ double compute_accuracy(double *predictions, int *labels, int rows, int cols) {
             correct++;
         }
     }
-    acc=(double)correct / rows;
+    acc=(float)correct / rows;
 
     return acc;
 }
@@ -240,7 +266,7 @@ double compute_accuracy(double *predictions, int *labels, int rows, int cols) {
 
 int main() {
     // 定义矩阵m、n、b、b1
-    double M[M_ROWS][M_COLS] = {
+    float M[M_ROWS][M_COLS] = {
 0.0588,0.0588,0.0588,0.0588,0.0588,0.0588,0.0588,0.0588,0.0588,0.0000,0.0588,0.0588,0.0588,0.0588,0.0000,0.0000,0.0000,0.0588,0.0000,0.0588,0.0000,0.0588,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0588,0.0000,0.0000,
 0.1000,0.1000,0.1000,0.1000,0.0000,0.0000,0.0000,0.1000,0.0000,0.0000,0.0000,0.0000,0.0000,0.1000,0.0000,0.0000,0.0000,0.1000,0.0000,0.1000,0.0000,0.1000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.1000,0.0000,0.0000,0.0000,
 0.0909,0.0909,0.0909,0.0909,0.0000,0.0000,0.0000,0.0909,0.0909,0.0909,0.0000,0.0000,0.0000,0.0909,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0909,0.0909,0.0000,0.0000,0.0000,0.0909,0.0000,
@@ -277,7 +303,7 @@ int main() {
 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0556,0.0556,0.0000,0.0000,0.0000,0.0556,0.0556,0.0556,0.0000,0.0000,0.0556,0.0556,0.0556,0.0000,0.0556,0.0556,0.0000,0.0000,0.0556,0.0556,0.0556,0.0556,0.0556,0.0556,0.0556,0.0556
 
                                };
-    double N[N_ROWS][N_COLS] = {
+    float N[N_ROWS][N_COLS] = {
 1.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,
 0.0000,1.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,
 0.0000,0.0000,1.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,
@@ -314,63 +340,123 @@ int main() {
 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.0000
                                };
     int labels[M_ROWS] = {1, 1, 1, 1, 3, 3, 3, 1, 0, 1, 3, 1, 1, 1, 0, 0, 3, 1, 0, 1, 0, 1,0, 0, 2, 2, 0, 0, 2, 0, 0, 2, 0, 0};
-    double B[B_ROWS][B_COLS];
+    float B[B_ROWS][B_COLS]={
+-0.0067, -0.0979,  0.1555,  0.1624, -0.3613,  0.1765, -0.1926,
+-0.1469, -0.2907,  0.3215, -0.3097, -0.3466, -0.2912,  0.1274,
+-0.0346, -0.0537, -0.0518,  0.1331,  0.0956,  0.2211,  0.3203,
+-0.2334, -0.0721, -0.2071, -0.3647,  0.1919,  0.0802,  0.3545,
+0.2658,  0.0565,  0.2383, -0.0985, -0.2572, -0.2338,  0.2705,
+-0.0675,  0.0326, -0.2796, -0.0086,  0.3588, -0.0083,  0.2505,
+ 0.0551,  0.2199, -0.3640,  0.3416, -0.1995,  0.0864, -0.0613,
+-0.0009, -0.0545,  0.1702, -0.3650, -0.3699, -0.0327,  0.0987,
+-0.3217,  0.0211,  0.0316,  0.0160, -0.0559, -0.2106, -0.1664,
+ 0.2924,  0.0965,  0.2484,  0.3271, -0.2917, -0.0824, -0.0667,
+ 0.1384,  0.1329, -0.0228, -0.0709,  0.2052,  0.0793,  0.1876,
+ 0.0108, -0.0514,  0.0372, -0.0606,  0.3406,  0.3222, -0.0585,
+-0.3446,  0.2260, -0.2815, -0.1424,  0.3563, -0.0613,  0.0836,
+ 0.0778, -0.0999, -0.3064,  0.2081,  0.0870, -0.3312,  0.0705,
+ 0.0902,  0.3731, -0.2942,  0.0602, -0.1989, -0.1406,  0.0168,
+ 0.0665,  0.0411, -0.0019,  0.1037,  0.3393, -0.2706,  0.0531,
+ 0.2649, -0.0616,  0.3002,  0.2477, -0.3505,  0.0652, -0.2607,
+ 0.1687, -0.0340, -0.0337, -0.3665, -0.1554, -0.1063,  0.1555,
+ 0.1429,  0.3735, -0.0870, -0.2123,  0.3259,  0.0839, -0.2072,
+ -0.0520,  0.2944,  0.0963,  0.2360, -0.1308,  0.2217,  0.3773,
+ 0.3160, -0.3254,  0.1366, -0.1335,  0.3639, -0.0809,  0.3182,
+ 0.1531,  0.3170, -0.0296,  0.2408,  0.2688,  0.2937,  0.1375,
+-0.0789,  0.2180,  0.3144, -0.1388,  0.2979,  0.2826, -0.1092,
+-0.0174,  0.0308, -0.1514, -0.2622, -0.2129, -0.3462,  0.2828,
+-0.2724, -0.1512,  0.0490, -0.1736,  0.1885,  0.2685,  0.1665,
+ 0.2356,  0.0329, -0.2088,  0.3659,  0.2555, -0.3038, -0.2782,
+ 0.3767, -0.2362,  0.3413, -0.1426,  0.2768,  0.0349, -0.2989,
+ 0.3263,  0.1610, -0.2293, -0.2160, -0.2750, -0.1942,  0.2584,
+ 0.0763,  0.3688,  0.0166, -0.0153,  0.0363, -0.3639,  0.2911,
+-0.0228,  0.2492, -0.1204, -0.1872, -0.0891,  0.0171, -0.3567,
+-0.3175,  0.1809,  0.0608, -0.0320, -0.0588, -0.0368,  0.2116,
+ 0.0320, -0.0156, -0.0399, -0.1726, -0.3114,  0.2177, -0.1038,
+-0.3649,  0.0619, -0.2170,  0.1325,  0.1947,  0.3417,  0.2214,
+-0.0919, -0.0247, -0.0388, -0.0421,  0.3415, -0.1473, -0.2749
+
+    };
     
-    double B1[B1_ROWS][B1_COLS];
-    reset_weight((double *)B, B_ROWS, B_COLS);
-    /*
-    for(int i=0;i<B_ROWS;i++){
-        for(int j=0;j<B_COLS;j++){
-            printf("%f  ",B[i][j]);
-        }
-        printf("\n");
+    float B1[B1_ROWS][B1_COLS]={
 
-    }
-    */
-    reset_weight((double *)B1, B1_ROWS, B1_COLS);
-    /*
-    for(int i=0;i<B1_ROWS;i++){
-        for(int j=0;j<B1_COLS;j++){
-            printf("%f  ",B1[i][j]);
-        }
-        printf("\n");
-
-    }
-    */
-
-    double A[A_ROWS][A_COLS];
-    matrix_multiply((double *)M, (double *)N, (double *)A, M_ROWS, M_COLS, N_COLS);
+-0.4285,  0.4888,  0.3976,  0.1055,
+0.2318,  0.3024,  0.2644, -0.4615,
+-0.2953, -0.2766, -0.2321,  0.1456,
+-0.3224, -0.0291,  0.2187,  0.3660,
+ 0.0181, -0.3088, -0.1990, -0.0752,
+ 0.2805,  0.4219, -0.3647,  0.0464,
+ 0.1903,  0.4961, -0.0397,  0.4157
     
-    double C[A_ROWS][B_COLS];
-    double O[M_ROWS][B_COLS];
-    double O1[M_ROWS][B1_COLS];
-    double grad_Relu[A_ROWS][B_COLS];
-    double grad[A_ROWS][B1_COLS];
-    double B1_grad[B_COLS][B1_COLS];
-    double O_grad[M_ROWS][B_COLS];
-    double C_grad[A_ROWS][B_COLS];
-    double B_grad[A_COLS][B_COLS];
+};
+    //reset_weight((float *)B, B_ROWS, B_COLS);
+    
+    
+    //reset_weight((float *)B1, B1_ROWS, B1_COLS);
+    
+    
+
+    float A[A_ROWS][A_COLS];
+    matrix_multiply((float *)M, (float *)N, (float *)A, M_ROWS, M_COLS, N_COLS);
+    
+    float C[A_ROWS][B_COLS];
+    float O[M_ROWS][B_COLS];
+    float O1[M_ROWS][B1_COLS];
+    float grad_Relu[A_ROWS][B_COLS];
+    float grad[A_ROWS][B1_COLS];
+    float B1_grad[B_COLS][B1_COLS];
+    float O_grad[M_ROWS][B_COLS];
+    float C_grad[A_ROWS][B_COLS];
+    float B_grad[A_COLS][B_COLS];
     int step=1;
-while(step<50){
+while(step<2){
     // 前向传播
-    matrix_multiply((double *)A, (double *)B, (double *)C, A_ROWS, A_COLS, B_COLS);
+    matrix_multiply((float *)A, (float *)B, (float *)C, A_ROWS, A_COLS, B_COLS);
+    printf("C:\n");
+    for(int i=0;i<A_ROWS;i++){
+        for(int j=0;j<B_COLS;j++){
+            printf("%f ",C[i][j]);
+        }
+        printf("\n");
+    }
     //ReLU激活函数以及激活函数的梯度
-    relu_derivative((double *)C, (double *)grad_Relu, A_ROWS, B_COLS);
-    relu((double *)C, A_ROWS, B_COLS);
-    matrix_multiply((double *)M, (double *)C, (double *)O, M_ROWS, B_COLS, B_COLS);
-    matrix_multiply((double *)O, (double *)B1, (double *)O1, M_ROWS, B_COLS, B1_COLS);
+    relu_derivative((float *)C, (float *)grad_Relu, A_ROWS, B_COLS);
+    relu((float *)C, A_ROWS, B_COLS);
+    printf("C_relu:\n");
+    for(int i=0;i<A_ROWS;i++){
+        for(int j=0;j<B_COLS;j++){
+            printf("%0.4f ",C[i][j]);
+        }
+        printf("\n");
+    }
+    matrix_multiply_1((float *)M, (float *)C, (float *)O, M_ROWS,M_ROWS, B_COLS);
+    printf("O:\n");
+    for(int i=0;i<M_ROWS;i++){
+        for(int j=0;j<B_COLS;j++){
+            printf("%0.4f ",O[i][j]);
+        }
+        printf("\n");
+    }
+    matrix_multiply((float *)O, (float *)B1, (float *)O1, M_ROWS, B_COLS, B1_COLS);
+    printf("O1:\n");
+    for(int i=0;i<M_ROWS;i++){
+        for(int j=0;j<B1_COLS;j++){
+            printf("%0.4f ",O1[i][j]);
+        }
+        printf("\n");
+    }
 
     // 计算损失和梯度
-    softmax((double *)O1, M_ROWS, B1_COLS);
-    double loss = cross_entropy_loss((double *)O1, labels, (double *)grad, M_ROWS, B1_COLS);
+    softmax((float *)O1, M_ROWS, B1_COLS);
+    float loss = cross_entropy_loss((float *)O1, labels, (float *)grad, M_ROWS, B1_COLS);
     printf("step:%d   Loss: %f  ", step,loss);
     //输出正确率
-    double accuracy=0;
-    accuracy=compute_accuracy((double *)O1, labels, M_ROWS, B1_COLS);
+    float accuracy=0;
+    accuracy=compute_accuracy((float *)O1, labels, M_ROWS, B1_COLS);
     printf("accuracy: %f\n",accuracy);
 
-    compute_gradient((double *)O, (double *)grad, (double *)B1_grad, M_ROWS, B_COLS, B1_COLS);
-    /*
+    compute_gradient((float *)O, (float *)grad, (float *)B1_grad, M_ROWS, B_COLS, B1_COLS);
+    
     printf("Gradient of B1:\n");
     for (int i = 0; i < B_COLS; i++) {
         for (int j = 0; j < B1_COLS; j++) {
@@ -379,11 +465,11 @@ while(step<50){
         printf("\n");
     }
     printf("******************************\n");
-    */
-    compute_gradient_left((double *)B1, (double *)grad, (double *)O_grad, M_ROWS, B_COLS, B1_COLS);
-    compute_gradient((double *)M, (double *)O_grad, (double *)C_grad, M_ROWS, M_COLS, B_COLS);
-    compute_gradient_relu((double *)A, (double *)C_grad, (double *)B_grad, (double*) grad_Relu,A_ROWS, A_COLS, B_COLS);
-    /*
+    
+    compute_gradient_left((float *)B1, (float *)grad, (float *)O_grad, M_ROWS, B_COLS, B1_COLS);
+    compute_gradient((float *)M, (float *)O_grad, (float *)C_grad, M_ROWS, M_COLS, B_COLS);
+    compute_gradient_relu((float *)A, (float *)C_grad, (float *)B_grad, (float*) grad_Relu,A_ROWS, A_COLS, B_COLS);
+    
     printf("Gradient of B:\n");
     for (int i = 0; i < A_COLS; i++) {
         for (int j = 0; j < B_COLS; j++) {
@@ -392,14 +478,14 @@ while(step<50){
         printf("\n");
     }
     printf("******************************\n");
-    */
+    
     //初始化m、v
-    double m_B[A_COLS][B_COLS]={0};
-    double v_B[A_COLS][B_COLS]={0};
-    double m_B1[B_COLS][B1_COLS]={0};
-    double v_B1[B_COLS][B1_COLS]={0};
-    adam_optimizer((double *)B, (double *)B_grad, (double *)m_B, (double *)v_B, A_COLS, B_COLS, step, Beta1, Beta2, Alpha);   
-    adam_optimizer((double *)B1, (double *)B1_grad, (double *)m_B1, (double *)v_B1, B_COLS, B1_COLS, step, Beta1, Beta2, Alpha);
+    float m_B[A_COLS][B_COLS]={0};
+    float v_B[A_COLS][B_COLS]={0};
+    float m_B1[B_COLS][B1_COLS]={0};
+    float v_B1[B_COLS][B1_COLS]={0};
+    adam_optimizer((float *)B, (float *)B_grad, (float *)m_B, (float *)v_B, A_COLS, B_COLS, step, Beta1, Beta2, Alpha);   
+    adam_optimizer((float *)B1, (float *)B1_grad, (float *)m_B1, (float *)v_B1, B_COLS, B1_COLS, step, Beta1, Beta2, Alpha);
     step+=1;
 
 }
