@@ -409,42 +409,14 @@ int main() {
     float C_grad[A_ROWS][B_COLS];
     float B_grad[A_COLS][B_COLS];
     int step=1;
-while(step<2){
+while(step<50){
     // 前向传播
     matrix_multiply((float *)A, (float *)B, (float *)C, A_ROWS, A_COLS, B_COLS);
-    printf("C:\n");
-    for(int i=0;i<A_ROWS;i++){
-        for(int j=0;j<B_COLS;j++){
-            printf("%f ",C[i][j]);
-        }
-        printf("\n");
-    }
     //ReLU激活函数以及激活函数的梯度
     relu_derivative((float *)C, (float *)grad_Relu, A_ROWS, B_COLS);
     relu((float *)C, A_ROWS, B_COLS);
-    printf("C_relu:\n");
-    for(int i=0;i<A_ROWS;i++){
-        for(int j=0;j<B_COLS;j++){
-            printf("%0.4f ",C[i][j]);
-        }
-        printf("\n");
-    }
-    matrix_multiply_1((float *)M, (float *)C, (float *)O, M_ROWS,M_ROWS, B_COLS);
-    printf("O:\n");
-    for(int i=0;i<M_ROWS;i++){
-        for(int j=0;j<B_COLS;j++){
-            printf("%0.4f ",O[i][j]);
-        }
-        printf("\n");
-    }
+    matrix_multiply((float *)M, (float *)C, (float *)O, M_ROWS,M_ROWS, B_COLS);
     matrix_multiply((float *)O, (float *)B1, (float *)O1, M_ROWS, B_COLS, B1_COLS);
-    printf("O1:\n");
-    for(int i=0;i<M_ROWS;i++){
-        for(int j=0;j<B1_COLS;j++){
-            printf("%0.4f ",O1[i][j]);
-        }
-        printf("\n");
-    }
 
     // 计算损失和梯度
     softmax((float *)O1, M_ROWS, B1_COLS);
@@ -457,27 +429,9 @@ while(step<2){
 
     compute_gradient((float *)O, (float *)grad, (float *)B1_grad, M_ROWS, B_COLS, B1_COLS);
     
-    printf("Gradient of B1:\n");
-    for (int i = 0; i < B_COLS; i++) {
-        for (int j = 0; j < B1_COLS; j++) {
-            printf("%f ", B1_grad[i][j]);
-        }
-        printf("\n");
-    }
-    printf("******************************\n");
-    
     compute_gradient_left((float *)B1, (float *)grad, (float *)O_grad, M_ROWS, B_COLS, B1_COLS);
     compute_gradient((float *)M, (float *)O_grad, (float *)C_grad, M_ROWS, M_COLS, B_COLS);
     compute_gradient_relu((float *)A, (float *)C_grad, (float *)B_grad, (float*) grad_Relu,A_ROWS, A_COLS, B_COLS);
-    
-    printf("Gradient of B:\n");
-    for (int i = 0; i < A_COLS; i++) {
-        for (int j = 0; j < B_COLS; j++) {
-            printf("%f ", B_grad[i][j]);
-        }
-        printf("\n");
-    }
-    printf("******************************\n");
     
     //初始化m、v
     float m_B[A_COLS][B_COLS]={0};
