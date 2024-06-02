@@ -240,7 +240,17 @@ void compute_gradient_relu(float *A, float *C_grad, float *B_grad, float *Relu_g
     }
 }
 
-void compute_gradient(float *A, float *C_grad, float *B_grad,int A_rows, int A_cols, int B_cols) {
+/**
+ * Computes the gradient of matrix B with respect to matrix A and matrix C.
+ *
+ * @param A         Pointer to the input matrix A
+ * @param C_grad    Pointer to the gradient of matrix C
+ * @param B_grad    Pointer to the output gradient matrix B
+ * @param A_rows    Number of rows in matrix A
+ * @param A_cols    Number of columns in matrix A
+ * @param B_cols    Number of columns in matrix B
+ */
+void compute_gradient(float *A, float *C_grad, float *B_grad, int A_rows, int A_cols, int B_cols) {
     for (int i = 0; i < A_cols; i++) {
         for (int j = 0; j < B_cols; j++) {
             B_grad[i * B_cols + j] = 0;
@@ -252,33 +262,64 @@ void compute_gradient(float *A, float *C_grad, float *B_grad,int A_rows, int A_c
 }
 
 
-void compute_gradient_left(float *B, float *C_grad, float *A_grad,int A_rows, int A_cols, int B_cols) {
+/**
+ * Computes the gradient of matrix A with respect to matrix B and matrix C.
+ *
+ * @param B         Pointer to the matrix B.
+ * @param C_grad    Pointer to the gradient of matrix C.
+ * @param A_grad    Pointer to store the gradient of matrix A.
+ * @param A_rows    Number of rows in matrix A.
+ * @param A_cols    Number of columns in matrix A.
+ * @param B_cols    Number of columns in matrix B.
+ */
+void compute_gradient_left(float *B, float *C_grad, float *A_grad, int A_rows, int A_cols, int B_cols) {
     for (int i = 0; i < A_cols; i++) {
         for (int j = 0; j < A_rows; j++) {
             A_grad[j * A_cols + i] = 0;
             for (int k = 0; k < B_cols; k++) {
-                A_grad[j * A_cols + i] += B[i* B_cols + k]* C_grad[j * B_cols + k];
+                A_grad[j * A_cols + i] += B[i * B_cols + k] * C_grad[j * B_cols + k];
             }
         }
     }
 }
 
 //adam优化器
-void adam_optimizer(float *params, float *grad, float *m, float *v, int row,int col, int t, float beta1, float beta2, float alpha) {
+/**
+ * Performs the Adam optimization algorithm on the given parameters.
+ *
+ * @param params The array of parameters to be optimized.
+ * @param grad The array of gradients corresponding to the parameters.
+ * @param m The array of first moment estimates.
+ * @param v The array of second moment estimates.
+ * @param row The number of rows in the arrays.
+ * @param col The number of columns in the arrays.
+ * @param t The current iteration step.
+ * @param beta1 The exponential decay rate for the first moment estimates.
+ * @param beta2 The exponential decay rate for the second moment estimates.
+ * @param alpha The learning rate.
+ */
+void adam_optimizer(float *params, float *grad, float *m, float *v, int row, int col, int t, float beta1, float beta2, float alpha) {
     float beta1_t = pow(beta1, t);
     float beta2_t = pow(beta2, t);
     for (int i = 0; i < row; i++) {
         for(int j = 0; j < col; j++){
-        m[i*col+j] = beta1 * m[i*col+j] + (1 - beta1) * grad[i*col+j];
-        v[i*col+j] = beta2 * v[i*col+j] + (1 - beta2) * grad[i*col+j] * grad[i*col+j];
-        float m_hat = m[i*col+j] / (1 - beta1_t);
-        float v_hat = v[i*col+j] / (1 - beta2_t);
-        params[i*col+j] -= alpha * m_hat / (sqrt(v_hat) + 1e-8);
+            m[i*col+j] = beta1 * m[i*col+j] + (1 - beta1) * grad[i*col+j];
+            v[i*col+j] = beta2 * v[i*col+j] + (1 - beta2) * grad[i*col+j] * grad[i*col+j];
+            float m_hat = m[i*col+j] / (1 - beta1_t);
+            float v_hat = v[i*col+j] / (1 - beta2_t);
+            params[i*col+j] -= alpha * m_hat / (sqrt(v_hat) + 1e-8);
         }
     }
 }
 
 // 初始化权重
+/**
+ * Resets the weights of a matrix using random values within a specified range.
+ *
+ * @param matrix The matrix whose weights need to be reset.
+ * @param rows The number of rows in the matrix.
+ * @param cols The number of columns in the matrix.
+ */
 void reset_weight(float *matrix, int rows, int cols) {
     
     float std = 1.0 / sqrt(cols);
@@ -287,46 +328,75 @@ void reset_weight(float *matrix, int rows, int cols) {
     }
 }
 //计算正确率
+/**
+ * Computes the accuracy of a set of predictions given the corresponding labels.
+ *
+ * @param predictions An array of floats representing the predicted values.
+ * @param labels An array of integers representing the true labels.
+ * @param rows The number of rows in the predictions and labels arrays.
+ * @param cols The number of columns in the predictions array.
+ * @return The accuracy of the predictions as a float value.
+ */
 float compute_accuracy(float *predictions, int *labels, int rows, int cols) {
     int correct = 0;
-    float acc=0;
+    float acc = 0;
+
     for (int i = 0; i < rows; i++) {
         int max_index = 0;
         float max_value = predictions[i * cols];
+
         for (int j = 1; j < cols; j++) {
             if (predictions[i * cols + j] > max_value) {
                 max_value = predictions[i * cols + j];
                 max_index = j;
             }
         }
+
         if (max_index == labels[i]) {
             correct++;
         }
     }
-    acc=(float)correct / rows;
+
+    acc = (float)correct / rows;
 
     return acc;
 }
 
-float compute_accuracy_train(float *predictions, int *labels, int *train,int tra,int p,int rows, int cols) {
+/**
+ * Computes the accuracy of the training predictions.
+ *
+ * @param predictions The array of predicted values.
+ * @param labels The array of actual labels.
+ * @param train The array indicating whether a data point is used for training or not.
+ * @param tra The total number of training data points.
+ * @param p The value indicating the class for which accuracy is computed.
+ * @param rows The number of rows in the predictions and labels arrays.
+ * @param cols The number of columns in the predictions array.
+ * @return The accuracy of the training predictions as a float value.
+ */
+float compute_accuracy_train(float *predictions, int *labels, int *train, int tra, int p, int rows, int cols) {
     int correct = 0;
-    float acc=0;
+    float acc = 0;
+
     for (int i = 0; i < rows; i++) {
-        if(train[i]==p){
-        int max_index = 0;
-        float max_value = predictions[i * cols];
-        for (int j = 1; j < cols; j++) {
-            if (predictions[i * cols + j] > max_value) {
-                max_value = predictions[i * cols + j];
-                max_index = j;
+        if (train[i] == p) {
+            int max_index = 0;
+            float max_value = predictions[i * cols];
+
+            for (int j = 1; j < cols; j++) {
+                if (predictions[i * cols + j] > max_value) {
+                    max_value = predictions[i * cols + j];
+                    max_index = j;
+                }
+            }
+
+            if (max_index == labels[i]) {
+                correct++;
             }
         }
-        if (max_index == labels[i]) {
-            correct++;
-        }
-        }
     }
-    acc=(float)correct / tra;
+
+    acc = (float)correct / tra;
 
     return acc;
 }
@@ -463,7 +533,10 @@ int main() {
     //reset_weight((float *)B1, B1_ROWS, B1_COLS);
     int idx_train[M_ROWS]={1,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0};
     //int idx_test[test_size]={1,2,3,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,26,27,28,29,30,31,32,33};
-    
+    int train_tra=4;
+    int test_tra=28;
+    int train_p=1;
+    int test_p=0;
 
     float A[A_ROWS][A_COLS];
     matrix_multiply((float *)M, (float *)N, (float *)A, M_ROWS, M_COLS, N_COLS);
@@ -495,18 +568,18 @@ while(step<200){
         }
     }
     //float loss = cross_entropy_loss((float *)O1, labels, (float *)grad, M_ROWS, B1_COLS);
-    float loss = cross_entropy_loss_train((float *)O1, labels, (float *)grad,idx_train,4,1, M_ROWS, B1_COLS);
+    float loss = cross_entropy_loss_train((float *)O1, labels, (float *)grad,idx_train,train_tra,train_p, M_ROWS, B1_COLS);
     printf("step:%d   Loss: %f  ", step,loss);
     //输出正确率
     float accuracy=0;
     //accuracy=compute_accuracy((float *)O1, labels, M_ROWS, B1_COLS);
-    accuracy=compute_accuracy_train((float *)O1, labels, idx_train,4,1,M_ROWS, B1_COLS);
+    accuracy=compute_accuracy_train((float *)O1, labels, idx_train,train_tra,train_p,M_ROWS, B1_COLS);
     printf("accuracy: %f    ",accuracy);
 
-    float loss_test = cross_entropy_loss_test((float *)O1, labels,idx_train,28,0, M_ROWS, B1_COLS);
+    float loss_test = cross_entropy_loss_test((float *)O1, labels,idx_train,test_tra,test_p, M_ROWS, B1_COLS);
     printf("test:  Loss: %f  ",loss_test);
     float accuracy_test=0;
-    accuracy_test=compute_accuracy_train((float *)O1, labels, idx_train,28,0,M_ROWS, B1_COLS);
+    accuracy_test=compute_accuracy_train((float *)O1, labels, idx_train,test_tra,test_p,M_ROWS, B1_COLS);
     printf("accuracy_test: %f\n",accuracy_test);
 
 
