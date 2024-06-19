@@ -34,6 +34,21 @@ LOSS=CrossEntropy(O1)
 #define Beta2 0.999
 #define Alpha 0.01
 
+//添加函数声明
+void matrix_multiply(float *A, float *B, float *C, int A_rows, int A_cols, int B_cols);
+void relu(float *matrix, int rows, int cols);
+void relu_derivative(float *matrix, float *grad, int rows, int cols);
+void softmax(float *matrix, int rows, int cols);
+float cross_entropy_loss(float *predictions, int *labels, float *grad, int rows, int cols);
+void compute_gradient(float *A, float *C_grad, float *B_grad, int A_rows, int A_cols, int B_cols);
+void compute_gradient_relu(float *A, float *C_grad, float *B_grad, float *Relu_grad,int A_rows, int A_cols, int B_cols);
+void adam_optimizer(float *params, float *grad, float *m, float *v, int row, int col, int t, float beta1, float beta2, float alpha);
+void reset_weight(float *matrix, int rows, int cols);
+float compute_accuracy(float *predictions, int *labels, int rows, int cols);
+float compute_accuracy_train(float *predictions, int *labels, int *train, int tra, int p, int rows, int cols);
+void train(float* M,float *N,float *B,float* B1,int *labels,int step);
+
+
 // 矩阵乘法函数
 /**
  * Multiplies two matrices and stores the result in a third matrix.
@@ -401,6 +416,44 @@ float compute_accuracy_train(float *predictions, int *labels, int *train, int tr
     return acc;
 }
 
+//整合训练过程
+void train(float* M,float *N,float *B,float* B1,int *labels,int step){
+    float A[A_ROWS][A_COLS];
+	matrix_multiply((float *)M, (float *)N, (float *)A, M_ROWS, M_COLS, N_COLS);
+    float C[A_ROWS][B_COLS];
+    float O[M_ROWS][B_COLS];
+    float O1[M_ROWS][B1_COLS];
+    float grad_relu[A_ROWS][B_COLS];
+    float grad[M_ROWS][B1_COLS];
+    float B1_grad[M_ROWS][B1_COLS];
+    float O_grad[M_ROWS][B_COLS];
+    float C_grad[M_ROWS][B_COLS];
+    float B_grad[A_COLS][B_COLS];
+    int epoch=0;
+    while(epoch<step){
+    matrix_multiply((float *)A, (float *)B, (float *)C, A_ROWS, A_COLS, B_COLS);
+    relu_derivative((float *)C, (float *)grad_relu, A_ROWS, B_COLS);
+    relu((float *)C, A_ROWS, B_COLS);
+    matrix_multiply((float *)M, (float *)C, (float *)O, M_ROWS,M_ROWS, B_COLS);
+    matrix_multiply((float *)O, (float *)B1, (float *)O1, M_ROWS, B_COLS, B1_COLS);
+    softmax((float *)O1, M_ROWS, B1_COLS);
+    float loss = cross_entropy_loss((float *)O1, labels, (float *)grad, M_ROWS, B1_COLS);
+    //printf("step:%d   Loss: %f  \n", step,loss);
+    compute_gradient((float *)O, (float *)grad, (float *)B1_grad, M_ROWS, B_COLS, B1_COLS);
+    compute_gradient_left((float *)B1, (float *)grad, (float *)O_grad, M_ROWS, B_COLS, B1_COLS);
+    compute_gradient((float *)M, (float *)O_grad, (float *)C_grad, M_ROWS, M_COLS, B_COLS);
+    compute_gradient_relu((float *)A, (float *)C_grad, (float *)B_grad, (float*) grad_relu,A_ROWS, A_COLS, B_COLS);
+    float m_B[A_COLS][B_COLS]={0};
+    float v_B[A_COLS][B_COLS]={0};
+    float m_B1[B_COLS][B1_COLS]={0};
+    float v_B1[B_COLS][B1_COLS]={0};
+    adam_optimizer((float *)B, (float *)B_grad, (float *)m_B, (float *)v_B, A_COLS, B_COLS, step, Beta1, Beta2, Alpha);   
+    adam_optimizer((float *)B1, (float *)B1_grad, (float *)m_B1, (float *)v_B1, B_COLS, B1_COLS, step, Beta1, Beta2, Alpha);
+    epoch++;
+    }
+}
+
+
 
 int main() {
     // 定义矩阵m、n、b、b1
@@ -527,10 +580,10 @@ int main() {
  0.1903,  0.4961, -0.0397,  0.4157
     
 };
-    //reset_weight((float *)B, B_ROWS, B_COLS);
+    reset_weight((float *)B, B_ROWS, B_COLS);
     
     
-    //reset_weight((float *)B1, B1_ROWS, B1_COLS);
+    reset_weight((float *)B1, B1_ROWS, B1_COLS);
     int idx_train[M_ROWS]={1,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0};
     //int idx_test[test_size]={1,2,3,5,6,7,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,25,26,27,28,29,30,31,32,33};
     int train_tra=4;
@@ -551,7 +604,11 @@ int main() {
     float C_grad[A_ROWS][B_COLS];
     float B_grad[A_COLS][B_COLS];
     int step=1;
-while(step<200){
+    train((float *)M,(float *)N,(float *)B,(float *)B1,labels,200);
+
+
+
+while(step<2){
     // 前向传播
     matrix_multiply((float *)A, (float *)B, (float *)C, A_ROWS, A_COLS, B_COLS);
     //ReLU激活函数以及激活函数的梯度
@@ -567,20 +624,20 @@ while(step<200){
             grad[i][j]=0;
         }
     }
-    //float loss = cross_entropy_loss((float *)O1, labels, (float *)grad, M_ROWS, B1_COLS);
-    float loss = cross_entropy_loss_train((float *)O1, labels, (float *)grad,idx_train,train_tra,train_p, M_ROWS, B1_COLS);
+    float loss = cross_entropy_loss((float *)O1, labels, (float *)grad, M_ROWS, B1_COLS);
+    //float loss = cross_entropy_loss_train((float *)O1, labels, (float *)grad,idx_train,train_tra,train_p, M_ROWS, B1_COLS);
     printf("step:%d   Loss: %f  ", step,loss);
     //输出正确率
     float accuracy=0;
-    //accuracy=compute_accuracy((float *)O1, labels, M_ROWS, B1_COLS);
-    accuracy=compute_accuracy_train((float *)O1, labels, idx_train,train_tra,train_p,M_ROWS, B1_COLS);
+    accuracy=compute_accuracy((float *)O1, labels, M_ROWS, B1_COLS);
+    //accuracy=compute_accuracy_train((float *)O1, labels, idx_train,train_tra,train_p,M_ROWS, B1_COLS);
     printf("accuracy: %f    ",accuracy);
 
-    float loss_test = cross_entropy_loss_test((float *)O1, labels,idx_train,test_tra,test_p, M_ROWS, B1_COLS);
-    printf("test:  Loss: %f  ",loss_test);
-    float accuracy_test=0;
-    accuracy_test=compute_accuracy_train((float *)O1, labels, idx_train,test_tra,test_p,M_ROWS, B1_COLS);
-    printf("accuracy_test: %f\n",accuracy_test);
+    //float loss_test = cross_entropy_loss_test((float *)O1, labels,idx_train,test_tra,test_p, M_ROWS, B1_COLS);
+    //printf("test:  Loss: %f  ",loss_test);
+    //float accuracy_test=0;
+    //accuracy_test=compute_accuracy_train((float *)O1, labels, idx_train,test_tra,test_p,M_ROWS, B1_COLS);
+    //printf("accuracy_test: %f\n",accuracy_test);
 
 
 
@@ -618,6 +675,7 @@ while(step<200){
     step+=1;
 
 }
+
 
     return 0;
 }

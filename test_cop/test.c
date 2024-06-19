@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "a.h"
 
 /**
  * @file test.c
@@ -8,9 +9,12 @@
 #include <stdio.h>
 
 int main() {
-    int num1 = 5;
+
+
+    int num1 = ss;
     int num2 = 10;
-    int sum = num1 + num2;
+    int sum = adder(num1, num2);
+
 
     printf("The sum of %d and %d is %d\n", num1, num2, sum);
 
